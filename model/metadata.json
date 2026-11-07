@@ -1,0 +1,23 @@
+{
+  "model": "random_forest",
+  "classes": [
+    "Bacteria",
+    "Human",
+    "Plant",
+    "Virus"
+  ],
+  "kmer_range": [
+    3,
+    5
+  ],
+  "sequence_column": "Sequence",
+  "label_column": "Class_Label",
+  "test_accuracy": 0.24833333333333332,
+  "test_macro_f1": 0.24746983712638665,
+  "cv_macro_f1": {
+    "logistic_regression": 0.24530468750886697,
+    "random_forest": 0.25533607604368885
+  },
+  "n_train": 2400,
+  "n_test": 600
+}

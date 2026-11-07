@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>DNA Sequence Analyzer</title>
+    <meta name="description" content="Analyze DNA sequences and classify them with a machine learning model.">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧬</text></svg>">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <div class="bg-glow" aria-hidden="true"></div>
+
+    <header class="navbar">
+        <a href="#" class="brand">
+            <span class="brand-icon">🧬</span>
+            <span>DNA Sequence</span>
+        </a>
+        <div class="model-status" id="model-status" data-state="checking" title="Backend / ML model status">
+            <span class="dot"></span>
+            <span id="model-status-text">Connecting…</span>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <!-- HERO -->
+        <section class="hero">
+            <span class="eyebrow">DNA SEQUENCE ANALYSIS · MACHINE LEARNING</span>
+            <h1>Analyze your <span class="grad">DNA sequence.</span></h1>
+            <p>
+                Get nucleotide composition, GC content, complementary strands
+                and an ML-powered classification, all in one place.
+            </p>
+        </section>
+
+        <!-- INPUT -->
+        <section class="panel input-panel" id="input-panel">
+            <div class="panel-head">
+                <div>
+                    <h2>Input sequence</h2>
+                    <p>Paste a DNA sequence (A, T, G, C) or upload a FASTA / text file.</p>
+                </div>
+                <div class="tools">
+                    <button id="sample-btn" class="chip" type="button">Load sample</button>
+                    <button id="random-btn" class="chip" type="button">Random 150 bp</button>
+                    <label class="chip file-chip" for="file-input">Upload file</label>
+                    <input id="file-input" type="file" accept=".fasta,.fa,.fna,.txt,.seq" hidden>
+                </div>
+            </div>
+
+            <label for="sequence" class="sr-only">DNA sequence</label>
+            <textarea
+                id="sequence"
+                placeholder="ATGCGTACGCTAGCTAGGATCC…"
+                spellcheck="false"
+                autocapitalize="characters"
+                autocomplete="off"
+                rows="6"
+            ></textarea>
+
+            <div class="input-footer">
+                <span id="char-count" class="muted">0 bases</span>
+                <span class="muted hint">Tip: press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to analyze</span>
+            </div>
+
+            <div id="message" class="message" role="status" aria-live="polite" hidden></div>
+
+            <div class="actions">
+                <button id="analyze-btn" class="btn primary" type="button">
+                    <span class="btn-label">Analyze DNA</span>
+                    <span class="btn-arrow">→</span>
+                    <span class="spinner" aria-hidden="true"></span>
+                </button>
+                <button id="clear-btn" class="btn ghost" type="button">Clear</button>
+            </div>
+        </section>
+
+        <!-- RESULTS -->
+        <section id="results" class="results" hidden>
+
+            <div class="results-head">
+                <div>
+                    <span class="eyebrow">ANALYSIS REPORT</span>
+                    <h2>Your sequence results</h2>
+                </div>
+                <button id="download-btn" class="chip" type="button">⬇ Download JSON</button>
+            </div>
+
+            <!-- Prediction + composition -->
+            <div class="grid-2">
+                <article class="panel prediction" id="prediction-card">
+                    <span class="card-label">ML CLASSIFICATION</span>
+                    <div id="prediction-body">
+                        <div class="pred-main">
+                            <div class="pred-label" id="pred-label">—</div>
+                            <div class="pred-conf">
+                                <span id="pred-conf">—</span>
+                                <small>confidence</small>
+                            </div>
+                        </div>
+                        <span id="pred-tag" class="tag" hidden>Low confidence</span>
+                        <div class="prob-list" id="prob-list"></div>
+                    </div>
+                    <p id="pred-empty" class="muted" hidden>
+                        No trained model found. Run <code>python train.py</code>, then restart the server.
+                    </p>
+                </article>
+
+                <article class="panel composition">
+                    <span class="card-label">BASE COMPOSITION</span>
+                    <div class="donut-wrap">
+                        <svg id="donut" viewBox="0 0 42 42" class="donut" role="img" aria-label="Base composition chart"></svg>
+                        <div class="donut-center">
+                            <strong id="donut-length">—</strong>
+                            <small>bases</small>
+                        </div>
+                    </div>
+                    <ul class="legend" id="legend"></ul>
+                </article>
+            </div>
+
+            <!-- Stat cards -->
+            <div class="stats-grid">
+                <article class="stat-card">
+                    <span class="stat-label">Sequence length</span>
+                    <strong id="length-result">—</strong>
+                    <span class="stat-note">Total bases</span>
+                </article>
+
+                <article class="stat-card">
+                    <span class="stat-label">GC content</span>
+                    <strong id="gc-result">—</strong>
+                    <div class="gc-bar" aria-hidden="true"><span id="gc-fill"></span></div>
+                    <span class="stat-note" id="gc-note">Percentage of G + C</span>
+                </article>
+
+                <article class="stat-card">
+                    <span class="stat-label">AT content</span>
+                    <strong id="at-result">—</strong>
+                    <span class="stat-note">Percentage of A + T</span>
+                </article>
+
+                <article class="stat-card base-a">
+                    <span class="stat-label">Adenine (A)</span>
+                    <strong id="a-result">—</strong>
+                    <span class="stat-note" id="a-pct">—</span>
+                </article>
+
+                <article class="stat-card base-t">
+                    <span class="stat-label">Thymine (T)</span>
+                    <strong id="t-result">—</strong>
+                    <span class="stat-note" id="t-pct">—</span>
+                </article>
+
+                <article class="stat-card base-g">
+                    <span class="stat-label">Guanine (G)</span>
+                    <strong id="g-result">—</strong>
+                    <span class="stat-note" id="g-pct">—</span>
+                </article>
+
+                <article class="stat-card base-c">
+                    <span class="stat-label">Cytosine (C)</span>
+                    <strong id="c-result">—</strong>
+                    <span class="stat-note" id="c-pct">—</span>
+                </article>
+            </div>
+
+            <!-- Sequences -->
+            <article class="panel seq-card">
+                <div class="seq-head">
+                    <h3>Sequence viewer</h3>
+                    <span class="muted" id="viewer-note"></span>
+                </div>
+                <p class="seq-output colored" id="viewer-result">—</p>
+            </article>
+
+            <article class="panel seq-card">
+                <div class="seq-head">
+                    <h3>Complementary sequence</h3>
+                    <button class="chip copy-btn" data-copy="complement" type="button">Copy</button>
+                </div>
+                <p class="seq-output colored" id="complement-result">—</p>
+            </article>
+
+            <article class="panel seq-card">
+                <div class="seq-head">
+                    <h3>Reverse complementary sequence</h3>
+                    <button class="chip copy-btn" data-copy="reverse_complement" type="button">Copy</button>
+                </div>
+                <p class="seq-output colored" id="reverse-result">—</p>
+            </article>
+        </section>
+
+        <footer>
+            <p>GeneScope · Bioinformatics DNA Analyzer</p>
+            <p>For educational and research learning purposes only. Not for clinical use.</p>
+        </footer>
+
+    </main>
+</body>
+</html>
